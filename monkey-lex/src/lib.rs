@@ -7,3 +7,6 @@ pub type Result<'a, T> = nom::IResult<Source<'a>, T>;
 
 /// Tokens in Monkey.
 pub mod token;
+
+/// Lexer implementation.
+pub mod lexer;

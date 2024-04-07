@@ -3,24 +3,25 @@ use crate::{Result, Source};
 /// A Monkey source code token.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Token<'s> {
-    /// Identifier.
-    Ident(Source<'s>),
     /// Operator.
     Operator(Operator),
     /// Keyword.
     Keyword(Keyword),
     /// Literal.
     Literal(Literal),
+    /// Identifier.
+    Ident(Source<'s>),
 }
 
 impl<'s> Token<'s> {
-    pub fn parse(src: Source) -> Result<Self> {
+    pub fn parse(src: Source<'s>) -> Result<Self> {
         use nom::{branch::alt, combinator::map};
 
         alt((
             map(Operator::parse, Token::Operator),
             map(Keyword::parse, Token::Keyword),
             map(Literal::parse, Token::Literal),
+            map(ident, Token::Ident),
         ))(src)
     }
 }
@@ -48,7 +49,7 @@ macro_rules! symbol_tok {
         }
 
         impl $name {
-            pub fn parse(src: $crate::Source) -> $crate::Result<Self> {
+            fn parse(src: $crate::Source) -> $crate::Result<Self> {
                 ::nom::branch::alt((
                     $(::nom::combinator::map(
                         ::nom::bytes::complete::tag($symbol),
@@ -93,7 +94,7 @@ pub enum Literal {
 }
 
 impl Literal {
-    pub fn parse(src: Source) -> Result<Self> {
+    fn parse(src: Source) -> Result<Self> {
         use nom::{branch::alt, character::complete::u64, combinator::map};
 
         alt((
@@ -101,6 +102,29 @@ impl Literal {
             // other
         ))(src)
     }
+}
+
+/// Parse an identifier from the beginning of a source slice.
+///
+/// There's no `Identifier` struct so this is a standalone
+/// function.
+fn ident(src: Source) -> Result<Source> {
+    use nom::{
+        bytes::complete::take_while1,
+        error::{make_error, ErrorKind},
+        Err,
+    };
+
+    let first = src
+        .chars()
+        .next()
+        .ok_or_else(|| Err::Failure(make_error(src, ErrorKind::TakeWhile1)))?;
+
+    if !(first == '_' || first.is_alphabetic()) {
+        return Err(Err::Failure(make_error(src, ErrorKind::Tag)));
+    }
+
+    take_while1(|ch: char| ch == '_' || ch.is_alphanumeric())(src)
 }
 
 #[cfg(test)]
@@ -136,5 +160,14 @@ mod tests {
             Literal::parse("816723").unwrap().1,
             Literal::Integer(816723)
         );
+    }
+
+    #[test]
+    fn ident() {
+        assert_eq!(
+            super::ident("__some_ident123").unwrap().1,
+            "__some_ident123",
+        );
+        assert!(super::ident("1_invalid_ident").is_err());
     }
 }
