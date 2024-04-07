@@ -8,7 +8,7 @@ pub enum Token<'s> {
     /// Keyword.
     Keyword(Keyword),
     /// Literal.
-    Literal(Literal),
+    Literal(Literal<'s>),
     /// Identifier.
     Ident(Source<'s>),
 }
@@ -17,12 +17,22 @@ impl<'s> Token<'s> {
     pub fn parse(src: Source<'s>) -> Result<Self> {
         use nom::{branch::alt, combinator::map};
 
-        alt((
+        let (new_src, tok) = alt((
             map(Operator::parse, Token::Operator),
             map(Keyword::parse, Token::Keyword),
             map(Literal::parse, Token::Literal),
             map(ident, Token::Ident),
-        ))(src)
+        ))(src)?;
+
+        if new_src.chars().next().is_some_and(char::is_alphabetic)
+            && matches!(tok, Token::Keyword(_))
+        {
+            // This is _not_ a keyword, but an identifier.
+            // Re-parse it as such.
+            return map(ident, Token::Ident)(src);
+        }
+
+        Ok((new_src, tok))
     }
 }
 
@@ -65,11 +75,17 @@ symbol_tok! {
     /// A Monkey operator.
     pub enum Operator {
         EqEq => "==",
+        Ne => "!=",
+        Le => "<=",
+        Ge => ">=",
         Eq => "=",
         Plus => "+",
         Minus => "-",
         Star => "*",
         Slash => "/",
+        Bang => "!",
+        Lt => "<",
+        Gt => ">",
         LParen => "(",
         RParen => ")",
         LBrace => "{",
@@ -84,22 +100,37 @@ symbol_tok! {
     pub enum Keyword {
         Fn => "fn",
         Let => "let",
+        True => "true",
+        False => "false",
+        If => "if",
+        Else => "else",
+        Return => "return",
     }
 }
 
 /// A Monkey literal.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Literal {
+pub enum Literal<'s> {
     Integer(u64),
+    String(Source<'s>),
 }
 
-impl Literal {
-    fn parse(src: Source) -> Result<Self> {
-        use nom::{branch::alt, character::complete::u64, combinator::map};
+impl<'s> Literal<'s> {
+    fn parse(src: Source<'s>) -> Result<Self> {
+        use nom::{
+            branch::alt,
+            bytes::complete::{tag, take_till},
+            character::complete::u64,
+            combinator::map,
+            sequence::delimited,
+        };
 
         alt((
             map(u64, Literal::Integer),
-            // other
+            map(
+                delimited(tag("\""), take_till(|ch| ch == '"'), tag("\"")),
+                Literal::String,
+            ), // other
         ))(src)
     }
 }
@@ -115,6 +146,9 @@ fn ident(src: Source) -> Result<Source> {
         Err,
     };
 
+    // Identifiers may only start with `_` or
+    // alphabetic characters.
+
     let first = src
         .chars()
         .next()
@@ -124,6 +158,7 @@ fn ident(src: Source) -> Result<Source> {
         return Err(Err::Failure(make_error(src, ErrorKind::Tag)));
     }
 
+    // Naming rule is satisfied, taking freely
     take_while1(|ch: char| ch == '_' || ch.is_alphanumeric())(src)
 }
 
@@ -160,6 +195,10 @@ mod tests {
             Literal::parse("816723").unwrap().1,
             Literal::Integer(816723)
         );
+        assert_eq!(
+            Literal::parse(r#""hello, world!""#).unwrap().1,
+            Literal::String("hello, world!")
+        )
     }
 
     #[test]

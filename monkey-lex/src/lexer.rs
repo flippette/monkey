@@ -96,4 +96,135 @@ let result = add(five, ten);";
             ],
         );
     }
+
+    #[test]
+    fn ext() {
+        let src = "!-/*5;
+5 < 10 > 5;
+
+if (5 < 10) {
+    return true;
+} else {
+    return false;
+}
+
+10 == 10;
+10 != 9;
+10 >= 9;
+9 <= 10;
+";
+
+        assert_tokens!(
+            src,
+            [
+                // !-/*5;
+                Token::Operator(Operator::Bang),
+                Token::Operator(Operator::Minus),
+                Token::Operator(Operator::Slash),
+                Token::Operator(Operator::Star),
+                Token::Literal(Literal::Integer(5)),
+                Token::Operator(Operator::Semi),
+                // 5 < 10 > 5;
+                Token::Literal(Literal::Integer(5)),
+                Token::Operator(Operator::Lt),
+                Token::Literal(Literal::Integer(10)),
+                Token::Operator(Operator::Gt),
+                Token::Literal(Literal::Integer(5)),
+                Token::Operator(Operator::Semi),
+                // if (5 < 10) {
+                Token::Keyword(Keyword::If),
+                Token::Operator(Operator::LParen),
+                Token::Literal(Literal::Integer(5)),
+                Token::Operator(Operator::Lt),
+                Token::Literal(Literal::Integer(10)),
+                Token::Operator(Operator::RParen),
+                Token::Operator(Operator::LBrace),
+                //     return true;
+                Token::Keyword(Keyword::Return),
+                Token::Keyword(Keyword::True),
+                Token::Operator(Operator::Semi),
+                // } else {
+                Token::Operator(Operator::RBrace),
+                Token::Keyword(Keyword::Else),
+                Token::Operator(Operator::LBrace),
+                //     return false;
+                Token::Keyword(Keyword::Return),
+                Token::Keyword(Keyword::False),
+                Token::Operator(Operator::Semi),
+                // }
+                Token::Operator(Operator::RBrace),
+                // 10 == 10;
+                Token::Literal(Literal::Integer(10)),
+                Token::Operator(Operator::EqEq),
+                Token::Literal(Literal::Integer(10)),
+                Token::Operator(Operator::Semi),
+                // 10 != 9;
+                Token::Literal(Literal::Integer(10)),
+                Token::Operator(Operator::Ne),
+                Token::Literal(Literal::Integer(9)),
+                Token::Operator(Operator::Semi),
+                // 10 >= 9;
+                Token::Literal(Literal::Integer(10)),
+                Token::Operator(Operator::Ge),
+                Token::Literal(Literal::Integer(9)),
+                Token::Operator(Operator::Semi),
+                // 9 <= 10;
+                Token::Literal(Literal::Integer(9)),
+                Token::Operator(Operator::Le),
+                Token::Literal(Literal::Integer(10)),
+                Token::Operator(Operator::Semi),
+            ],
+        );
+    }
+
+    #[test]
+    fn operators() {
+        let src = "==!=<=>==+-*/!<>(){},;";
+        assert_tokens!(
+            src,
+            [
+                Token::Operator(Operator::EqEq),
+                Token::Operator(Operator::Ne),
+                Token::Operator(Operator::Le),
+                Token::Operator(Operator::Ge),
+                Token::Operator(Operator::Eq),
+                Token::Operator(Operator::Plus),
+                Token::Operator(Operator::Minus),
+                Token::Operator(Operator::Star),
+                Token::Operator(Operator::Slash),
+                Token::Operator(Operator::Bang),
+                Token::Operator(Operator::Lt),
+                Token::Operator(Operator::Gt),
+                Token::Operator(Operator::LParen),
+                Token::Operator(Operator::RParen),
+                Token::Operator(Operator::LBrace),
+                Token::Operator(Operator::RBrace),
+                Token::Operator(Operator::Comma),
+                Token::Operator(Operator::Semi),
+            ]
+        );
+    }
+
+    #[test]
+    fn keywords() {
+        let src = "fn let true false if else return";
+        assert_tokens!(
+            src,
+            [
+                Token::Keyword(Keyword::Fn),
+                Token::Keyword(Keyword::Let),
+                Token::Keyword(Keyword::True),
+                Token::Keyword(Keyword::False),
+                Token::Keyword(Keyword::If),
+                Token::Keyword(Keyword::Else),
+                Token::Keyword(Keyword::Return),
+            ],
+        );
+    }
+
+    #[test]
+    fn keywords_invalid() {
+        let src = "fnlettruefalse";
+        assert_tokens!(src, [Token::Ident("fnlettruefalse")]);
+    }
 }
