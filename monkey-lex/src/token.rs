@@ -7,7 +7,7 @@ pub enum Token<'s> {
     Delimiter(Delimiter),
     Keyword(Keyword),
     Literal(Literal<'s>),
-    Ident(Source<'s>),
+    Ident(Ident<'s>),
 }
 
 impl<'s> Token<'s> {
@@ -19,7 +19,7 @@ impl<'s> Token<'s> {
             map(Delimiter::parse, Token::Delimiter),
             map(Keyword::parse, Token::Keyword),
             map(Literal::parse, Token::Literal),
-            map(ident, Token::Ident),
+            map(Ident::parse, Token::Ident),
         ))(src)?;
 
         if new_src.chars().next().is_some_and(char::is_alphabetic)
@@ -27,7 +27,7 @@ impl<'s> Token<'s> {
         {
             // This is _not_ a keyword, but an identifier.
             // Re-parse it as such.
-            return map(ident, Token::Ident)(src);
+            return map(Ident::parse, Token::Ident)(src);
         }
 
         Ok((new_src, tok))
@@ -47,29 +47,26 @@ macro_rules! symbol_tok {
             $($variant:ident => $symbol:literal),+ $(,)?
         }
     ) => {
-        $(#[$outer])*
-        $vis enum $name {
-            $(
-                #[doc = concat!("`", $symbol, "`")]
-                $variant,
-            )+
-        }
-
-        impl $name {
-            ::paste::paste! {
-                $(
-                    pub const [<$name:upper _ $variant:upper>]: &'static str =
-                        $symbol;
-                )+
+        ::paste::paste! {
+            $(#[$outer])*
+            $vis enum $name {
+                $($variant,)+
             }
 
-            fn parse(src: $crate::Source) -> $crate::Result<Self> {
-                ::nom::branch::alt((
-                    $(::nom::combinator::map(
-                        ::nom::bytes::complete::tag($symbol),
-                        |_| $name::$variant
-                    ),)+
-                ))(src)
+            impl $name {
+                $(
+                    pub const [<$variant:upper>]: &'static str =
+                        $symbol;
+                )+
+
+                fn parse(src: $crate::Source) -> $crate::Result<Self> {
+                    ::nom::branch::alt((
+                        $(::nom::combinator::map(
+                            ::nom::bytes::complete::tag($symbol),
+                            |_| $name::$variant
+                        ),)+
+                    ))(src)
+                }
             }
         }
     };
@@ -124,7 +121,7 @@ symbol_tok! {
 /// A Monkey literal.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Literal<'s> {
-    Integer(u64),
+    Number(Source<'s>),
     String(Source<'s>),
 }
 
@@ -132,52 +129,66 @@ impl<'s> Literal<'s> {
     fn parse(src: Source<'s>) -> Result<Self> {
         use nom::{
             branch::alt,
-            bytes::complete::{tag, take_till},
-            character::complete::u64,
-            combinator::map,
-            sequence::delimited,
+            bytes::complete::{tag, take_until, take_while1},
+            combinator::{map, opt, recognize},
+            sequence::tuple,
         };
 
         alt((
-            map(u64, Literal::Integer),
             map(
-                delimited(tag("\""), take_till(|ch| ch == '"'), tag("\"")),
-                Literal::String,
-            ), // other
+                recognize(tuple((
+                    opt(tag("-")),
+                    take_while1(|ch: char| ch.is_ascii_digit()),
+                ))),
+                Self::Number,
+            ),
+            map(
+                recognize(tuple((tag("\""), take_until("\""), tag("\"")))),
+                Self::String,
+            ),
         ))(src)
     }
 }
 
-/// Parse an identifier from the beginning of a source slice.
-///
-/// There's no `Identifier` struct so this is a standalone
-/// function.
-fn ident(src: Source) -> Result<Source> {
-    use nom::{
-        bytes::complete::take_while1,
-        error::{make_error, ErrorKind},
-        Err,
-    };
+/// A Monkey identifier.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Ident<'s>(pub Source<'s>);
 
-    // Identifiers may only start with `_` or
-    // alphabetic characters.
-
-    let first = src
-        .chars()
-        .next()
-        .ok_or_else(|| Err::Failure(make_error(src, ErrorKind::TakeWhile1)))?;
-
-    if !(first == '_' || first.is_alphabetic()) {
-        return Err(Err::Failure(make_error(src, ErrorKind::Tag)));
+impl<'s> Ident<'s> {
+    /// Returns the inner identifier.
+    pub fn get(&self) -> Source {
+        self.0
     }
 
-    // Naming rule is satisfied, taking freely
-    take_while1(|ch: char| ch == '_' || ch.is_alphanumeric())(src)
+    pub fn parse(src: Source<'s>) -> Result<Self> {
+        use nom::{
+            branch::alt,
+            bytes::complete::{tag, take, take_while},
+            combinator::{map, recognize, verify},
+            sequence::tuple,
+        };
+
+        // Identifiers may only start with `_` or
+        // alphabetic characters.
+
+        map(
+            recognize(tuple((
+                alt((
+                    tag("_"),
+                    verify(take(1usize), |s: &str| {
+                        s.chars().next().is_some_and(char::is_alphabetic)
+                    }),
+                )),
+                take_while(|ch: char| ch == '_' || ch.is_ascii_alphanumeric()),
+            ))),
+            Self,
+        )(src)
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Delimiter, Keyword, Literal, Operator, Token};
+    use super::{Delimiter, Ident, Keyword, Literal, Operator, Token};
 
     #[test]
     fn token() {
@@ -192,8 +203,12 @@ mod tests {
         assert_eq!(Token::parse("fn").unwrap().1, Token::Keyword(Keyword::Fn));
         assert_eq!(
             Token::parse("123").unwrap().1,
-            Token::Literal(Literal::Integer(123))
+            Token::Literal(Literal::Number("123"))
         );
+        assert_eq!(
+            Token::parse("_ident").unwrap().1,
+            Token::Ident(Ident("_ident")),
+        )
     }
 
     #[test]
@@ -215,20 +230,20 @@ mod tests {
     fn literal() {
         assert_eq!(
             Literal::parse("816723").unwrap().1,
-            Literal::Integer(816723)
+            Literal::Number("816723")
         );
         assert_eq!(
             Literal::parse(r#""hello, world!""#).unwrap().1,
-            Literal::String("hello, world!")
+            Literal::String(r#""hello, world!""#)
         )
     }
 
     #[test]
     fn ident() {
         assert_eq!(
-            super::ident("__some_ident123").unwrap().1,
-            "__some_ident123",
+            Ident::parse("__some_ident123").unwrap().1,
+            Ident("__some_ident123"),
         );
-        assert!(super::ident("1_invalid_ident").is_err());
+        assert!(Ident::parse("1_invalid_ident").is_err());
     }
 }
