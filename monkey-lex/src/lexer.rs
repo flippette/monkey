@@ -25,7 +25,7 @@ impl<'s> Iterator for Lexer<'s> {
 
 #[cfg(test)]
 mod tests {
-    use crate::token::{Keyword, Literal, Operator, Token};
+    use crate::token::{Keyword, Literal, Operator, Token, Delimiter};
 
     macro_rules! assert_tokens {
         ($src:expr, [$($tok:expr),+ $(,)?] $(,)?) => {
@@ -56,13 +56,13 @@ let result = add(five, ten);";
                 Token::Ident("five"),
                 Token::Operator(Operator::Eq),
                 Token::Literal(Literal::Integer(5)),
-                Token::Operator(Operator::Semi),
+                Token::Delimiter(Delimiter::Semi),
                 // let ten = 10;
                 Token::Keyword(Keyword::Let),
                 Token::Ident("ten"),
                 Token::Operator(Operator::Eq),
                 Token::Literal(Literal::Integer(10)),
-                Token::Operator(Operator::Semi),
+                Token::Delimiter(Delimiter::Semi),
                 // let add = fn(x, y) {
                 Token::Keyword(Keyword::Let),
                 Token::Ident("add"),
@@ -70,7 +70,7 @@ let result = add(five, ten);";
                 Token::Keyword(Keyword::Fn),
                 Token::Operator(Operator::LParen),
                 Token::Ident("x"),
-                Token::Operator(Operator::Comma),
+                Token::Delimiter(Delimiter::Comma),
                 Token::Ident("y"),
                 Token::Operator(Operator::RParen),
                 Token::Operator(Operator::LBrace),
@@ -78,10 +78,10 @@ let result = add(five, ten);";
                 Token::Ident("x"),
                 Token::Operator(Operator::Plus),
                 Token::Ident("y"),
-                Token::Operator(Operator::Semi),
+                Token::Delimiter(Delimiter::Semi),
                 // };
                 Token::Operator(Operator::RBrace),
-                Token::Operator(Operator::Semi),
+                Token::Delimiter(Delimiter::Semi),
                 // let result = add(five, ten);
                 Token::Keyword(Keyword::Let),
                 Token::Ident("result"),
@@ -89,10 +89,10 @@ let result = add(five, ten);";
                 Token::Ident("add"),
                 Token::Operator(Operator::LParen),
                 Token::Ident("five"),
-                Token::Operator(Operator::Comma),
+                Token::Delimiter(Delimiter::Comma),
                 Token::Ident("ten"),
                 Token::Operator(Operator::RParen),
-                Token::Operator(Operator::Semi),
+                Token::Delimiter(Delimiter::Semi),
             ],
         );
     }
@@ -123,14 +123,14 @@ if (5 < 10) {
                 Token::Operator(Operator::Slash),
                 Token::Operator(Operator::Star),
                 Token::Literal(Literal::Integer(5)),
-                Token::Operator(Operator::Semi),
+                Token::Delimiter(Delimiter::Semi),
                 // 5 < 10 > 5;
                 Token::Literal(Literal::Integer(5)),
                 Token::Operator(Operator::Lt),
                 Token::Literal(Literal::Integer(10)),
                 Token::Operator(Operator::Gt),
                 Token::Literal(Literal::Integer(5)),
-                Token::Operator(Operator::Semi),
+                Token::Delimiter(Delimiter::Semi),
                 // if (5 < 10) {
                 Token::Keyword(Keyword::If),
                 Token::Operator(Operator::LParen),
@@ -142,7 +142,7 @@ if (5 < 10) {
                 //     return true;
                 Token::Keyword(Keyword::Return),
                 Token::Keyword(Keyword::True),
-                Token::Operator(Operator::Semi),
+                Token::Delimiter(Delimiter::Semi),
                 // } else {
                 Token::Operator(Operator::RBrace),
                 Token::Keyword(Keyword::Else),
@@ -150,29 +150,29 @@ if (5 < 10) {
                 //     return false;
                 Token::Keyword(Keyword::Return),
                 Token::Keyword(Keyword::False),
-                Token::Operator(Operator::Semi),
+                Token::Delimiter(Delimiter::Semi),
                 // }
                 Token::Operator(Operator::RBrace),
                 // 10 == 10;
                 Token::Literal(Literal::Integer(10)),
                 Token::Operator(Operator::EqEq),
                 Token::Literal(Literal::Integer(10)),
-                Token::Operator(Operator::Semi),
+                Token::Delimiter(Delimiter::Semi),
                 // 10 != 9;
                 Token::Literal(Literal::Integer(10)),
                 Token::Operator(Operator::Ne),
                 Token::Literal(Literal::Integer(9)),
-                Token::Operator(Operator::Semi),
+                Token::Delimiter(Delimiter::Semi),
                 // 10 >= 9;
                 Token::Literal(Literal::Integer(10)),
                 Token::Operator(Operator::Ge),
                 Token::Literal(Literal::Integer(9)),
-                Token::Operator(Operator::Semi),
+                Token::Delimiter(Delimiter::Semi),
                 // 9 <= 10;
                 Token::Literal(Literal::Integer(9)),
                 Token::Operator(Operator::Le),
                 Token::Literal(Literal::Integer(10)),
-                Token::Operator(Operator::Semi),
+                Token::Delimiter(Delimiter::Semi),
             ],
         );
     }
@@ -199,8 +199,8 @@ if (5 < 10) {
                 Token::Operator(Operator::RParen),
                 Token::Operator(Operator::LBrace),
                 Token::Operator(Operator::RBrace),
-                Token::Operator(Operator::Comma),
-                Token::Operator(Operator::Semi),
+                Token::Delimiter(Delimiter::Comma),
+                Token::Delimiter(Delimiter::Semi),
             ]
         );
     }

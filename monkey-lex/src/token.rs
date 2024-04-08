@@ -3,13 +3,10 @@ use crate::{Result, Source};
 /// A Monkey source code token.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Token<'s> {
-    /// Operator.
     Operator(Operator),
-    /// Keyword.
+    Delimiter(Delimiter),
     Keyword(Keyword),
-    /// Literal.
     Literal(Literal<'s>),
-    /// Identifier.
     Ident(Source<'s>),
 }
 
@@ -19,6 +16,7 @@ impl<'s> Token<'s> {
 
         let (new_src, tok) = alt((
             map(Operator::parse, Token::Operator),
+            map(Delimiter::parse, Token::Delimiter),
             map(Keyword::parse, Token::Keyword),
             map(Literal::parse, Token::Literal),
             map(ident, Token::Ident),
@@ -50,7 +48,6 @@ macro_rules! symbol_tok {
         }
     ) => {
         $(#[$outer])*
-        #[derive(Clone, Copy, PartialEq, Eq, Debug)]
         $vis enum $name {
             $(
                 #[doc = concat!("`", $symbol, "`")]
@@ -73,6 +70,7 @@ macro_rules! symbol_tok {
 
 symbol_tok! {
     /// A Monkey operator.
+    #[derive(Clone, Copy, PartialEq, Eq, Debug)]
     pub enum Operator {
         EqEq => "==",
         Ne => "!=",
@@ -90,6 +88,13 @@ symbol_tok! {
         RParen => ")",
         LBrace => "{",
         RBrace => "}",
+    }
+}
+
+symbol_tok! {
+    /// A Monkey delimiter.
+    #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+    pub enum Delimiter {
         Comma => ",",
         Semi => ";",
     }
@@ -97,6 +102,7 @@ symbol_tok! {
 
 symbol_tok! {
     /// A Monkey keyword.
+    #[derive(Clone, Copy, PartialEq, Eq, Debug)]
     pub enum Keyword {
         Fn => "fn",
         Let => "let",
@@ -164,13 +170,17 @@ fn ident(src: Source) -> Result<Source> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Keyword, Literal, Operator, Token};
+    use super::{Keyword, Literal, Operator, Token, Delimiter};
 
     #[test]
     fn token() {
         assert_eq!(
             Token::parse("+").unwrap().1,
             Token::Operator(Operator::Plus)
+        );
+        assert_eq!(
+            Token::parse(";").unwrap().1,
+            Token::Delimiter(Delimiter::Semi),
         );
         assert_eq!(Token::parse("fn").unwrap().1, Token::Keyword(Keyword::Fn));
         assert_eq!(
@@ -182,6 +192,11 @@ mod tests {
     #[test]
     fn operator() {
         assert_eq!(Operator::parse("==").unwrap().1, Operator::EqEq);
+    }
+
+    #[test]
+    fn delimiter() {
+        assert_eq!(Delimiter::parse(",").unwrap().1, Delimiter::Comma);
     }
 
     #[test]
