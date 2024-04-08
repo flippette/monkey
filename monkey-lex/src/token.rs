@@ -56,6 +56,13 @@ macro_rules! symbol_tok {
         }
 
         impl $name {
+            ::paste::paste! {
+                $(
+                    pub const [<$name:upper _ $variant:upper>]: &'static str =
+                        $symbol;
+                )+
+            }
+
             fn parse(src: $crate::Source) -> $crate::Result<Self> {
                 ::nom::branch::alt((
                     $(::nom::combinator::map(

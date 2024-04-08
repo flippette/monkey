@@ -7,3 +7,4 @@ license.workspace = true
 [dependencies]
 casey.workspace = true
 nom.workspace = true
+paste.workspace = true
