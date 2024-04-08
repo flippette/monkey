@@ -177,7 +177,7 @@ fn ident(src: Source) -> Result<Source> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Keyword, Literal, Operator, Token, Delimiter};
+    use super::{Delimiter, Keyword, Literal, Operator, Token};
 
     #[test]
     fn token() {

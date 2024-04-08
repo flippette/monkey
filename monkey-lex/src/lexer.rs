@@ -25,7 +25,7 @@ impl<'s> Iterator for Lexer<'s> {
 
 #[cfg(test)]
 mod tests {
-    use crate::token::{Keyword, Literal, Operator, Token, Delimiter};
+    use crate::token::{Delimiter, Keyword, Literal, Operator, Token};
 
     macro_rules! assert_tokens {
         ($src:expr, [$($tok:expr),+ $(,)?] $(,)?) => {
