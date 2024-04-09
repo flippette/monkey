@@ -43,7 +43,7 @@ impl<'s> SeekLexer<'s> {
     }
 
     /// Create a [`Reverse`] borrowing from this [`SeekLexer`].
-    pub fn reverse<'l>(&'l mut self) -> Reverse<'l, 's> {
+    pub fn reverse(&mut self) -> Reverse<'_, 's> {
         Reverse { inner: self }
     }
 }
