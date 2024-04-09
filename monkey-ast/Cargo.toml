@@ -1,0 +1,8 @@
+[package]
+name = "monkey-ast"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+monkey-lex.workspace = true

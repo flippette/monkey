@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["monkey-lex", "monkey-repl"]
+members = [ "monkey-ast","monkey-lex", "monkey-repl"]
 
 [workspace.package]
 version = "0.1.0"
