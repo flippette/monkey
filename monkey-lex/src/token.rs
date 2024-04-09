@@ -11,6 +11,12 @@ pub enum Token<'s> {
 }
 
 impl<'s> Token<'s> {
+    /// Parse a [`Token`] from the beginning of a [`Source`] slice.
+    ///
+    /// # Errors
+    ///
+    /// This function will only return an error when `src` only contains
+    /// whitespace, or is empty.
     pub fn parse(src: Source<'s>) -> Result<Self> {
         use nom::{branch::alt, combinator::map};
 
@@ -59,6 +65,17 @@ macro_rules! symbol_tok {
                         $symbol;
                 )+
 
+                #[doc = concat!(
+                    "Parse a [`",
+                    stringify!([< $name >]),
+                    "`] from the beginning of a [`Source`] slice.",
+                    "\n\n",
+                    "# Errors",
+                    "\n\n",
+                    "This function returns an [`Err`] if a [`",
+                    stringify!([< $name >]),
+                    "`] cannot be parsed.",
+                )]
                 fn parse(src: $crate::Source) -> $crate::Result<Self> {
                     ::nom::branch::alt((
                         $(::nom::combinator::map(
@@ -156,10 +173,19 @@ pub struct Ident<'s>(pub Source<'s>);
 
 impl<'s> Ident<'s> {
     /// Returns the inner identifier.
+    #[must_use]
     pub fn get(&self) -> Source {
         self.0
     }
 
+    /// Parses an [`Ident`] from the beginning of a [`Source`] slice.
+    ///
+    /// # Errors
+    ///
+    /// Identifiers may only contain `_` and _alphanumeric_ characters,
+    /// and must start with either `_` or _alphabetic_ characters.
+    ///
+    /// This function returns an [`Err`] if the above condition is not met.
     pub fn parse(src: Source<'s>) -> Result<Self> {
         use nom::{
             branch::alt,

@@ -8,6 +8,7 @@ pub struct Lexer<'s> {
 
 impl<'s> Lexer<'s> {
     /// Create a new [`Lexer`] from a [`Source`] slice.
+    #[must_use]
     pub fn new(src: Source<'s>) -> Self {
         Self { src }
     }
